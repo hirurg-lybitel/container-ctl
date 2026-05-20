@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: gsbelarus/container-ctl:latest
+    image: ${CONTAINER_CTL_IMAGE:-ghcr.io/gsbelarus/container-ctl:latest}
     container_name: container-ctl
     restart: unless-stopped
     env_file:

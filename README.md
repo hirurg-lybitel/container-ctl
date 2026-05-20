@@ -92,3 +92,41 @@ npm test
 ```
 
 Docker integration: `CONTAINER_CTL_INTEGRATION_DOCKER=1 npm test`
+
+## CI/CD (GitHub Actions)
+
+On every push to `main`, the workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml):
+
+1. Runs `npm test`
+2. Builds and pushes the image to `ghcr.io/gsbelarus/container-ctl` (`latest` + commit SHA tag)
+3. Copies `docker-compose.yml` to the server and runs `docker compose pull && up -d`
+
+### Server setup (once)
+
+- Docker and Docker Compose v2
+- External network `proxy_network` (as in `docker-compose.yml`)
+- Deploy directory, e.g. `/opt/container-ctl`:
+  - `docker-compose.yml` (updated automatically by CI)
+  - `.env` with `CONTAINER_CTL_API_KEY` and other settings (create manually, not in git)
+
+```bash
+sudo mkdir -p /opt/container-ctl
+sudo chown "$USER:$USER" /opt/container-ctl
+cp .env.example /opt/container-ctl/.env
+# edit /opt/container-ctl/.env — set CONTAINER_CTL_API_KEY
+```
+
+### GitHub repository secrets
+
+| Secret | Description |
+|--------|-------------|
+| `SSH_HOST` | Server hostname or IP |
+| `SSH_USER` | SSH user (must run `docker` without sudo, or use root) |
+| `SSH_PRIVATE_KEY` | Private key (PEM), matching `authorized_keys` on the server |
+| `DEPLOY_PATH` | Absolute path on the server, e.g. `/opt/container-ctl` |
+| `SSH_PORT` | Optional, default `22` |
+| `GHCR_TOKEN` | Optional: PAT with `read:packages` if the GHCR image is **private** |
+
+For a **public** package, `GHCR_TOKEN` is not required — the server pulls without login.
+
+After the first workflow run, make the GHCR package public (if needed): **GitHub → Packages → container-ctl → Package settings → Change visibility**.
