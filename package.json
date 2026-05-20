@@ -1,0 +1,19 @@
+{
+  "name": "container-ctl",
+  "version": "1.0.0",
+  "description": "HTTP API for Docker container list, inspect, and lifecycle",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gsbelarus/container-ctl.git"
+  },
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test test/container-ctl.test.mjs",
+    "check": "node --check src/index.js && node --check src/api.js && node --check src/auth.js && node --check src/config.js && node --check src/dockerClient.js && node --check test/container-ctl.test.mjs"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "dockerode": "^4.0.9"
+  }
+}
