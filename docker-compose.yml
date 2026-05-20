@@ -11,8 +11,9 @@ services:
         required: false
     environment:
       CONTAINER_CTL_DOCKER_SOCKET: /var/run/docker.sock
-      CONTAINER_CTL_LISTEN_HOST: 0.0.0.0
-      CONTAINER_CTL_LISTEN_PORT: "3080"
+      CONTAINER_CTL_LISTEN_HOST: ${CONTAINER_CTL_LISTEN_HOST:-0.0.0.0}
+      CONTAINER_CTL_LISTEN_PORT: ${CONTAINER_CTL_LISTEN_PORT:-3080}
+      CONTAINER_CTL_ALLOW_DELETE: ${CONTAINER_CTL_ALLOW_DELETE:-false}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:

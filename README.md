@@ -1,43 +1,14 @@
 # container-ctl
 
-HTTP API for Docker containers only: list, inspect (with suggested upstream for routing), and lifecycle actions.
+Standalone HTTP API for Docker containers: list, inspect (ports and networks), and lifecycle actions (`start`, `stop`, `restart`, optional `delete`).
 
-Route configuration lives in [reverse-proxy](https://github.com/gsbelarus/reverse-proxy) (`hosts.json` via `/api/hosts`). Call **container-ctl first**, then the proxy hosts API.
+Works on any host with access to the Docker socket.
 
-## Workflow
+## Use cases
 
-```mermaid
-sequenceDiagram
-  participant Client
-  participant Ctl as container_ctl
-  participant Proxy as reverse_proxy_hosts_API
-
-  Client->>Ctl: GET /api/containers/my_app
-  Ctl-->>Client: suggestedUpstream host port
-  Client->>Proxy: POST /api/hosts/app.example.com
-
-  Client->>Proxy: DELETE /api/hosts/app.example.com
-  Client->>Ctl: POST /api/containers/my_app action stop
-```
-
-### Add a public hostname
-
-1. `GET /api/containers/my_app` — read `suggestedUpstream.host` and `suggestedUpstream.port` (and `ports` / `networks` if needed).
-2. `POST https://routes.example.com/api/hosts/app.example.com` on reverse-proxy with body like:
-
-```json
-{
-  "host": "my_app",
-  "port": 3000,
-  "protocol": "http:",
-  "mode": "http-proxy"
-}
-```
-
-### Remove a hostname
-
-1. `DELETE` on reverse-proxy hosts API (stop traffic first).
-2. `POST /api/containers/my_app` with `{"action":"stop"}` or `{"action":"delete"}` when `CONTAINER_CTL_ALLOW_DELETE=true`.
+- **Automation / CI** — query container state and ports before or after deploys.
+- **Internal tooling** — start, stop, or restart services from scripts or dashboards.
+- **Routing helpers** — `inspect` returns `suggestedUpstream` (`host` = container name, `port` = first exposed port) when you wire traffic elsewhere; pick an explicit port from `ports` when several are exposed.
 
 ## API
 
@@ -62,12 +33,26 @@ Default listen: `http://0.0.0.0:3080`.
   "suggestedUpstream": { "host": "my_app", "port": 3000 },
   "ports": [{ "containerPort": 3000, "hostPort": null, "protocol": "tcp" }],
   "networks": {
-    "proxy_network": { "ipAddress": "172.18.0.5", "aliases": ["my_app"] }
+    "bridge": { "ipAddress": "172.17.0.2", "aliases": ["my_app"] }
   }
 }
 ```
 
-If several ports are exposed, `suggestedUpstream.port` is the first discovered; pick explicitly from `ports` when ambiguous.
+If several ports are exposed, `suggestedUpstream.port` is the first discovered; choose explicitly from `ports` when ambiguous.
+
+### Lifecycle example
+
+```bash
+curl -sS -H "Authorization: Bearer $CONTAINER_CTL_API_KEY" \
+  http://127.0.0.1:3080/api/containers/my_app
+
+curl -sS -X POST -H "Authorization: Bearer $CONTAINER_CTL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"action":"restart"}' \
+  http://127.0.0.1:3080/api/containers/my_app
+```
+
+`delete` is rejected unless `CONTAINER_CTL_ALLOW_DELETE=true`.
 
 ## Configuration
 
@@ -81,17 +66,24 @@ If several ports are exposed, `suggestedUpstream.port` is the first discovered; 
 
 ## Run
 
+**Node (local or VM)**
+
 ```bash
 npm install
 cp .env.example .env
+# set CONTAINER_CTL_API_KEY in .env
 npm start
 ```
+
+**Docker Compose**
 
 ```bash
 docker compose up -d --build
 ```
 
-Requires external network `proxy_network` (created by reverse-proxy compose). Only `docker.sock` is mounted.
+Only `docker.sock` is mounted.
+
+Bind to a private interface or protect the port with a firewall — the API can control every container on the host.
 
 ## Tests
 
