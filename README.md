@@ -122,7 +122,7 @@ cp .env.example /opt/container-ctl/.env
 |--------|-------------|
 | `SSH_HOST` | Server hostname or IP |
 | `SSH_USER` | SSH user (must run `docker` without sudo, or use root) |
-| `SSH_PRIVATE_KEY` | Private key (PEM), matching `authorized_keys` on the server |
+| `SSH_PASSWORD` | SSH password for `SSH_USER` |
 | `DEPLOY_PATH` | Absolute path on the server, e.g. `/opt/container-ctl` |
 | `SSH_PORT` | Optional, default `22` |
 | `GHCR_TOKEN` | Optional: PAT with `read:packages` if the GHCR image is **private** |
